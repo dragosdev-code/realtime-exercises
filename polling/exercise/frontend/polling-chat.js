@@ -36,12 +36,18 @@ async function getNewMsgs() {
   try {
     const rest = await fetch("/poll");
     json = await rest.json();
+
+    if (rest.status >= 400) {
+      throw new Error("request did not succeed: " + rest.status);
+    }
+
+    allChat = json.msg;
+    render();
+    failedTries = 0;
   } catch (e) {
-    console.error("polling error, e");
+    console.error("polling error,", e);
+    failedTries++;
   }
-  allChat = json.msg;
-  render();
-  setTimeout(getNewMsgs, INTERVAL);
 }
 
 function render() {
@@ -57,15 +63,13 @@ function render() {
 const template = (user, msg) =>
   `<li class="collection-item"><span class="badge">${user}</span>${msg}</li>`;
 
-// make the first request
-getNewMsgs();
-
+const BACKOFF = 5000;
 let timeToMakeNextRequest = 0;
-
+let failedTries = 0;
 async function raftTimer(time) {
   if (timeToMakeNextRequest <= time) {
     await getNewMsgs();
-    timeToMakeNextRequest = time + INTERVAL;
+    timeToMakeNextRequest = time + INTERVAL + failedTries * BACKOFF;
   }
 
   requestAnimationFrame(raftTimer);
