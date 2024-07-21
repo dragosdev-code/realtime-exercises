@@ -59,3 +59,16 @@ const template = (user, msg) =>
 
 // make the first request
 getNewMsgs();
+
+let timeToMakeNextRequest = 0;
+
+async function raftTimer(time) {
+  if (timeToMakeNextRequest <= time) {
+    await getNewMsgs();
+    timeToMakeNextRequest = time + INTERVAL;
+  }
+
+  requestAnimationFrame(raftTimer);
+}
+
+requestAnimationFrame(raftTimer);
